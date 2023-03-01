@@ -1,6 +1,6 @@
 TARGET=$(shell rustc -vV | awk '$$1 == "host:"{print $$2}')
 BUILD_DIR=${CURDIR}/build
-VERSION=$(shell cat Cargo.toml | awk 'BEGIN{FS="[ \"]"}$$1 == "version"{print $$4;exit}')
+VERSION=$(shell cat Cargo.toml | awk 'BEGIN{FS="[ \"]"}$$1 == "application_version"{print $$4;exit}')
 RELEASE_FILENAME_POSTFIX=
 
 all: release
