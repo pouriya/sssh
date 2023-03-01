@@ -1,0 +1,30 @@
+[package]
+name = "sssh"
+version = "2.3.23"
+edition = "2021"
+
+[dependencies]
+clap = {version = "4.1.*", default-features = false, features = ["std", "help", "usage", "derive", "env", "wrap_help", "cargo"]}
+tracing = "0.1.*"
+tracing-subscriber = {version = "0.3.*", features =[ "local-time"]}
+toml = "0.7.*"
+serde = {version = "1.0.*", features = ["derive"]}
+anyhow = "1.0.*"
+thiserror = "1.0.*"
+dirs = "4.0.*"
+lazy_static = "1.4.*"
+tui = "0.19"
+crossterm = "0.25"
+atty = "0.2.14"
+faccess = "0.2.*"
+
+[package.metadata.deb]
+maintainer = "Pouriya Jahanbakhsh pouriya.jahanbakhsh@gmail.com"
+copyright = "2023, Pouriya Jim Jahanbakhsh <pouriya.jahanbakhsh@gmail.com>"
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/sssh", "usr/local/bin/", "755"],
+]
+maintainer-scripts = "pkg/debian/"

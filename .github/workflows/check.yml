@@ -1,0 +1,142 @@
+name: Check
+
+on:
+  push:
+    tags-ignore:
+      - "*.*.*"
+    paths-ignore:
+      - "**.md"
+    branches-ignore:
+      - "documentation"
+  pull_request:
+    branches:
+      - "master"
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-12
+            target: x86_64-apple-darwin
+            name: macOS 12 (x86-64)
+          - os: macos-11
+            target: x86_64-apple-darwin
+            name: macOS 11 (x86-64)
+
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            name: Ubuntu 22.04 GNU (x86-64)
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-musl
+            name: Ubuntu 22.04 Musl (x86-64)
+          - os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            name: Ubuntu 20.04 GNU (x86-64)
+          - os: ubuntu-20.04
+            target: x86_64-unknown-linux-musl
+            name: Ubuntu 20.04 Musl (x86-64)
+
+          - os: windows-2022
+            target: x86_64-pc-windows-gnu
+            name: Windows 2022 GNU (x86-64)
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            name: Windows 2022 MSVC (x86-64)
+          - os: windows-2019
+            target: x86_64-pc-windows-gnu
+            name: Windows 2019 GNU (x86-64)
+          - os: windows-2019
+            target: x86_64-pc-windows-msvc
+            name: Windows 2019 MSVC (x86-64)
+
+    steps:
+      - name: Installing Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Installing macOS dependencies
+        if: contains(matrix.os, 'macos-')
+        run: |
+          brew install openssl@1.1
+          brew install make
+      - name: Installing Linux dependencies
+        if: contains(matrix.os, 'ubuntu-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y -qq pkg-config libssl-dev
+          cargo install cargo-deb
+      - name: Installing Windows dependencies
+        if: contains(matrix.os, 'windows-')
+        run: |
+          rustup target add ${{ matrix.target }}
+      - name: Installing Linux dependencies for `musl`
+        if: contains(matrix.os, 'ubuntu-') && contains(matrix.target, '-musl')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y -qq musl-dev musl-tools
+          rustup target add ${{ matrix.target }}
+      - name: Checking out sources
+        uses: actions/checkout@v1
+
+      - name: Lint
+        run: make lint VERSION=test TARGET=${{ matrix.target }}
+
+      - name: Build
+        run: make release VERSION=test TARGET=${{ matrix.target }} RELEASE_FILENAME_POSTFIX=-${{ matrix.os }}
+
+      - name: Test
+        run: make test VERSION=test TARGET=${{ matrix.target }}
+
+      - name: Build Debian package
+        if: contains(matrix.os, 'ubuntu-')
+        shell: bash
+        run: make deb VERSION=test TARGET=${{ matrix.target }} RELEASE_FILENAME_POSTFIX=-${{ matrix.os }}
+
+      - name: Rename Windows executable
+        if: contains(matrix.os, 'windows-')
+        shell: bash
+        run: |
+          NAME=`ls build/sssh-*` 
+          mv $NAME `echo $NAME | sed 's/.exe//'`.exe
+      - name: Archive Linux artifacts
+        if: contains(matrix.os, 'ubuntu-')
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-releases
+          path: |
+            build/sssh-*
+            !build/sssh-*.deb
+          retention-days: 10
+
+      - name: Archive Debian package artifacts
+        if: contains(matrix.os, 'ubuntu-')
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-releases
+          path: build/sssh-*.deb
+          retention-days: 10
+
+      - name: Archive Windows artifacts
+        if: contains(matrix.os, 'windows-')
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-releases
+          path: build/sssh-*
+          retention-days: 10
+
+      - name: Archive macOS artifacts
+        if: contains(matrix.os, 'macos-')
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-releases
+          path: build/sssh-*
+          retention-days: 10
