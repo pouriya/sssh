@@ -1,7 +1,11 @@
 [package]
 name = "sssh"
-version = "2.3.23"
+version = "23.3.2"
 edition = "2021"
+
+[workspace.metadata]
+application_version = "23.03.02"
+
 
 [dependencies]
 clap = {version = "4.1.*", default-features = false, features = ["std", "help", "usage", "derive", "env", "wrap_help", "cargo"]}
