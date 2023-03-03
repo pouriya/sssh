@@ -1,6 +1,6 @@
 TARGET=$(shell rustc -vV | awk '$$1 == "host:"{print $$2}')
 BUILD_DIR=${CURDIR}/build
-VERSION=$(shell cat Cargo.toml | awk 'BEGIN{FS="[ \"]"}$$1 == "application_version"{print $$4;exit}')
+VERSION=$(shell cat Cargo.toml | awk 'BEGIN{FS="[ \"]"}$$1 == "APPLICATION_VERSION"{print $$4;exit}')
 CMD=${BUILD_DIR}/sssh-${VERSION}-${TARGET}${RELEASE_FILENAME_POSTFIX}
 DEV_CMD=${BUILD_DIR}/sssh-${VERSION}-${TARGET}-dev${RELEASE_FILENAME_POSTFIX}
 RELEASE_FILENAME_POSTFIX=
