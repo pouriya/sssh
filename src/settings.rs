@@ -14,6 +14,19 @@ const DEFAULT_CONFIGURATION_FILENAME: &str = "sssh.toml";
 const DEFAULT_SCRIPT_FILENAME: &str = "sssh.sh";
 const DEFAULT_USERNAME: &str = "root";
 pub const DEFAULT_PORT_NUMBER: u16 = 22;
+const EDITOR_COMMAND_NOT_FOUND: &str = "<not found>";
+const DEFAULT_EDITOR_ARGUMENTS: &str = "{FILENAME}";
+#[cfg(target_family = "unix")]
+const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
+    ("vim", &["{FILENAME}"]),
+    ("nano", &["-l", "{FILENAME}"]),
+    ("vi", &["{FILENAME}"]),
+];
+#[cfg(not(target_family = "unix"))]
+const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
+    ("notepad++", &["-nosession", "-notabbar", "{FILENAME}"]),
+    ("notepad", &["{FILENAME}"]),
+];
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -51,14 +64,24 @@ pub struct Settings {
     pub skip_select: bool,
     /// Editor command for editing configuration file.
     #[arg(
-        name = "editor-cmd",
-        short,
+        name = "editor-command",
+        short='e',
         long,
         global = true,
-        default_value = "vi",
-        env = "SSSH_EDITOR_CMD"
+        default_value = default_editor_command(),
+        env = "SSSH_EDITOR_COMMAND"
     )]
-    pub editor_command: String,
+    pub editor_command: PathBuf,
+    /// List of arguments passed to --editor-command
+    #[arg(
+        name = "editor-argument",
+        short='E',
+        long,
+        default_value = default_editor_argument_list(),
+        global = true,
+        env = "SSSH_EDITOR_ARGUMENTS"
+    )]
+    pub editor_argument_list: Vec<PathBuf>,
     #[command(subcommand)]
     maybe_subcommand: Option<SubCommand>,
     #[arg(skip)]
@@ -196,6 +219,47 @@ impl Settings {
     pub fn is_default_servers(&self) -> bool {
         self.configuration.is_default_servers()
     }
+
+    pub fn ensure_editor_command(&mut self) -> Result<(), AppError> {
+        if self.editor_command.to_str().unwrap() == EDITOR_COMMAND_NOT_FOUND {}
+        if self.editor_argument_list == [PathBuf::from(DEFAULT_EDITOR_ARGUMENTS)].to_vec() {
+            for (command_name, argument_list) in TO_BE_SEARCHED_EDITOR_LIST.iter().cloned() {
+                if command_name == self.editor_command.to_str().unwrap() {
+                    self.editor_argument_list =
+                        argument_list.iter().cloned().map(PathBuf::from).collect();
+                    break;
+                }
+            }
+        }
+        let mut append_filename = true;
+        self.editor_argument_list = self
+            .editor_argument_list
+            .iter()
+            .map(|argument| {
+                let new_argument = PathBuf::from(
+                    argument
+                        .to_str()
+                        .unwrap()
+                        .replace("{FILENAME}", self.configuration_file.to_str().unwrap()),
+                );
+                if &new_argument != argument {
+                    debug!("Replaced configuration file in editor arguments");
+                    append_filename = false
+                };
+                if argument == &self.configuration_file {
+                    debug!("Configuration file already exists in editor arguments");
+                    append_filename = false
+                };
+                new_argument
+            })
+            .collect();
+        if append_filename {
+            debug!("Appended configuration file to editor arguments");
+            self.editor_argument_list
+                .push(self.configuration_file.clone())
+        }
+        Ok(())
+    }
 }
 
 #[cfg(target_family = "unix")]
@@ -296,6 +360,25 @@ fn default_script_filename() -> &'static str {
 
 fn default_port_number() -> u16 {
     DEFAULT_PORT_NUMBER
+}
+
+fn default_editor_command() -> &'static str {
+    for (command, _) in TO_BE_SEARCHED_EDITOR_LIST.into_iter().cloned() {
+        if let Some(_) = pathsearch::find_executable_in_path(command) {
+            return Box::leak(command.to_string().into_boxed_str());
+        }
+    }
+    return EDITOR_COMMAND_NOT_FOUND;
+}
+
+fn default_editor_argument_list() -> &'static str {
+    let default_editor_command = default_editor_command();
+    for (command_name, argument_list) in TO_BE_SEARCHED_EDITOR_LIST.into_iter().cloned() {
+        if command_name == default_editor_command {
+            return Box::leak(argument_list.join(" ").into_boxed_str());
+        }
+    }
+    DEFAULT_EDITOR_ARGUMENTS
 }
 
 fn try_join_to_user_configuration_directory(filename: &'static str) -> Result<PathBuf> {
