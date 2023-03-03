@@ -19,12 +19,13 @@ const DEFAULT_EDITOR_ARGUMENTS: &str = "{FILENAME}";
 #[cfg(target_family = "unix")]
 const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
     ("vim", &["{FILENAME}"]),
-    ("nano", &["-l", "{FILENAME}"]),
+    ("nano", &["{FILENAME}"]),
     ("vi", &["{FILENAME}"]),
 ];
 #[cfg(not(target_family = "unix"))]
 const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
-    ("notepad++", &["-nosession", "-notabbar", "{FILENAME}"]),
+    // -multiInst: Launch another Notepad++ instance.
+    ("notepad++", &["-multiInst", "{FILENAME}"]),
     ("notepad", &["{FILENAME}"]),
 ];
 
@@ -157,17 +158,13 @@ impl Settings {
     }
 
     pub fn try_load_and_set_configuration(&mut self) -> Result<Config, AppError> {
-        self.ensure_configuration_file()?;
+        self.maybe_try_create_configuration_file()?;
         let config = Config::try_from(self.configuration_file.clone())?;
         self.configuration = config.clone();
         Ok(config)
     }
 
-    pub fn ensure_configuration(&mut self) -> Result<(), AppError> {
-        self.try_load_and_set_configuration().and(Ok(()))
-    }
-
-    pub fn ensure_configuration_file(&mut self) -> Result<(), AppError> {
+    pub fn maybe_try_create_configuration_file(&mut self) -> Result<(), AppError> {
         let configuration_filename = self.configuration_file.clone();
         if !configuration_filename.exists() {
             let _ = self.try_create_default_configuration_file()?;
@@ -175,7 +172,7 @@ impl Settings {
         Ok(())
     }
 
-    pub fn try_create_default_script_file(&mut self) -> Result<String, AppError> {
+    pub fn maybe_try_create_script_file(&mut self) -> Result<String, AppError> {
         let script_filename = self.script_file.clone();
         let script = DEFAULT_SCRIPT.to_string();
         fs::write(script_filename.clone(), script.clone()).map_err(|error| {
@@ -196,7 +193,7 @@ impl Settings {
     pub fn ensure_script_file(&mut self) -> Result<(), AppError> {
         let script_filename = self.script_file.clone();
         if !script_filename.exists() {
-            let _ = self.try_create_default_script_file()?;
+            let _ = self.maybe_try_create_script_file()?;
         }
         let script =
             fs::read_to_string(script_filename.clone()).map_err(|error| AppError::FileRead {
@@ -250,7 +247,14 @@ impl Settings {
                     debug!("Configuration file already exists in editor arguments");
                     append_filename = false
                 };
-                new_argument
+                // Normally you can not run something like this:
+                // sssh -E "--my-own-editor-option"
+                // Because `clap` thinks that `--my-own-editor-option` is `sssh` option!
+                // But you can:
+                // sssh -E "'--my-own-editor-option'"
+                // or:
+                // sssh -E '"--my-own-editor-option"'
+                PathBuf::from(new_argument.to_str().unwrap().replace(['\'', '"'], ""))
             })
             .collect();
         if append_filename {
@@ -363,17 +367,17 @@ fn default_port_number() -> u16 {
 }
 
 fn default_editor_command() -> &'static str {
-    for (command, _) in TO_BE_SEARCHED_EDITOR_LIST.into_iter().cloned() {
-        if let Some(_) = pathsearch::find_executable_in_path(command) {
+    for (command, _) in TO_BE_SEARCHED_EDITOR_LIST.iter().cloned() {
+        if pathsearch::find_executable_in_path(command).is_some() {
             return Box::leak(command.to_string().into_boxed_str());
         }
     }
-    return EDITOR_COMMAND_NOT_FOUND;
+    EDITOR_COMMAND_NOT_FOUND
 }
 
 fn default_editor_argument_list() -> &'static str {
     let default_editor_command = default_editor_command();
-    for (command_name, argument_list) in TO_BE_SEARCHED_EDITOR_LIST.into_iter().cloned() {
+    for (command_name, argument_list) in TO_BE_SEARCHED_EDITOR_LIST.iter().cloned() {
         if command_name == default_editor_command {
             return Box::leak(argument_list.join(" ").into_boxed_str());
         }
