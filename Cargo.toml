@@ -21,6 +21,7 @@ tui = "0.19"
 crossterm = "0.25"
 atty = "0.2.14"
 faccess = "0.2.*"
+pathsearch = "0.2.*"
 
 [package.metadata.deb]
 maintainer = "Pouriya Jahanbakhsh pouriya.jahanbakhsh@gmail.com"

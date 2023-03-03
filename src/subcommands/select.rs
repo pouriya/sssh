@@ -303,6 +303,7 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
         }
         Err(error) => return Err(error),
     };
+    settings.ensure_editor_command()?;
     let theme = Theme::default();
     loop {
         settings.ensure_script_file()?;
@@ -341,12 +342,17 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
             Ok(ControlFlow::Stop) => return Ok(()),
             Ok(ControlFlow::Selected) => {
                 let server = state.server_list[state.server_offset].clone();
-                run_script(
-                    settings,
-                    server.clone(),
-                    server.username_list[state.username_offset].clone(),
-                )?;
-                return Ok(());
+                let username = server.username_list[state.username_offset].clone();
+                let run_scrip_result = if settings.skip_select {
+                    println!(
+                        "You have selected `{}` ({}@{}). Skip running script file.",
+                        server.name, username, server.hostname
+                    );
+                    Ok(())
+                } else {
+                    run_script(settings, server, username)
+                };
+                return run_scrip_result;
             }
             Err(error) => return Err(error),
         }
@@ -864,27 +870,26 @@ fn run_script(
     server: ConfigServer,
     username: String,
 ) -> Result<(), AppError> {
-    let full_address = format!("{}@{}:{}", username, server.hostname, server.port);
-    let username = username;
     let hostname = server.hostname.clone();
+    let address = format!("{}@{}", username, server.hostname);
     let port = server.port.to_string();
     let mut argument_list = [
-        full_address.clone(),
+        address.clone(),
         username.clone(),
         hostname.clone(),
         port.clone(),
     ]
     .to_vec();
     let mut env_list = [
-        ("ADDRESS", full_address.as_str()),
-        ("USERNAME", username.as_str()),
-        ("HOSTNAME", hostname.as_str()),
-        ("PORT", port.as_str()),
+        ("SSSH_ADDRESS", address.as_str()),
+        ("SSSH_USERNAME", username.as_str()),
+        ("SSSH_HOSTNAME", hostname.as_str()),
+        ("SSSH_PORT", port.as_str()),
     ]
     .to_vec();
     if settings.verbose {
         argument_list.push("1".to_string());
-        env_list.push(("DEBUG", "1"));
+        env_list.push(("SSSH_DEBUG", "1"));
     } else {
         argument_list.push("0".to_string());
     }

@@ -16,6 +16,7 @@ pub enum AppError {
         filename: PathBuf,
         source: io::Error,
     },
+    #[cfg(target_family = "unix")]
     #[error("Could not set execute permissions for {title:} file {filename:?}")]
     FileSetPermission {
         title: &'static str,
