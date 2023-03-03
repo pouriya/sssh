@@ -275,7 +275,7 @@ fn set_permissions(filename: PathBuf) -> Result<(), AppError> {
 }
 
 #[cfg(not(target_family = "unix"))]
-fn set_permissions(filename: PathBuf) -> Result<(), AppError> {
+fn set_permissions(_filename: PathBuf) -> Result<(), AppError> {
     Ok(())
 }
 
