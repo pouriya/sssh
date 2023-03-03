@@ -299,7 +299,7 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
         }
         Err(error) => return Err(error),
     };
-    settings.ensure_editor_command()?;
+    settings.check_editor_command()?;
     let theme = Theme::default();
     loop {
         settings.ensure_script_file()?;

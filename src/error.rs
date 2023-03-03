@@ -28,10 +28,15 @@ pub enum AppError {
         filename: PathBuf,
         source: toml::de::Error,
     },
-    #[error("{title:} {filename:?} already exists.")]
+    #[error("{title:} {filename:?} already exists")]
     FileAlreadyExists {
         title: &'static str,
         filename: PathBuf,
+    },
+    #[error("{title:} command {command:?} not found.")]
+    CommandNotFound {
+        title: &'static str,
+        command: PathBuf,
     },
     // Edit subcommand:
     #[error("Editor process was running for less than 2 seconds!\nMaybe your editor opened the edit tab inside another session.")]

@@ -19,13 +19,29 @@ const DEFAULT_EDITOR_ARGUMENTS: &str = "{FILENAME}";
 #[cfg(target_family = "unix")]
 const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
     ("vim", &["{FILENAME}"]),
-    ("nano", &["{FILENAME}"]),
+    (
+        "nano",
+        &[
+            "-l", // Show line numbers in front of the text.
+            "{FILENAME}",
+        ],
+    ),
     ("vi", &["{FILENAME}"]),
 ];
 #[cfg(not(target_family = "unix"))]
 const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
     // -multiInst: Launch another Notepad++ instance.
-    ("notepad++", &["-multiInst", "{FILENAME}"]),
+    // -nosession:
+    // -notabbar:
+    (
+        "notepad++",
+        &[
+            "-multiInst", // Another Notepad++ instance.
+            "-nosession", // Without previous session.
+            "-notabbar",  // Without tabbar.
+            "{FILENAME}",
+        ],
+    ),
     ("notepad", &["{FILENAME}"]),
 ];
 
@@ -217,16 +233,29 @@ impl Settings {
         self.configuration.is_default_servers()
     }
 
-    pub fn ensure_editor_command(&mut self) -> Result<(), AppError> {
-        if self.editor_command.to_str().unwrap() == EDITOR_COMMAND_NOT_FOUND {}
-        if self.editor_argument_list == [PathBuf::from(DEFAULT_EDITOR_ARGUMENTS)].to_vec() {
-            for (command_name, argument_list) in TO_BE_SEARCHED_EDITOR_LIST.iter().cloned() {
-                if command_name == self.editor_command.to_str().unwrap() {
-                    self.editor_argument_list =
-                        argument_list.iter().cloned().map(PathBuf::from).collect();
-                    break;
+    pub fn check_editor_command(&mut self) -> Result<(), AppError> {
+        if self.editor_command.to_str().unwrap() == EDITOR_COMMAND_NOT_FOUND {
+            return Err(AppError::CommandNotFound {
+                title: "Editor",
+                command: self.editor_command.clone(),
+            });
+        }
+        let default_editor_argument_list = default_editor_argument_list();
+        if self.editor_argument_list == [PathBuf::from(default_editor_argument_list)].to_vec() {
+            self.editor_argument_list = default_editor_argument_list
+                .split(' ')
+                .map(PathBuf::from)
+                .collect();
+        }
+        if std::env::var("SSSH_EDITOR_ARGUMENTS").is_ok() {
+            debug!("Split editor arguments (it's from environment variables)");
+            let mut editor_argument_list = Vec::new();
+            self.editor_argument_list.iter().for_each(|argument| {
+                for item in argument.to_str().unwrap().split(' ') {
+                    editor_argument_list.push(PathBuf::from(item))
                 }
-            }
+            });
+            self.editor_argument_list = editor_argument_list;
         }
         let mut append_filename = true;
         self.editor_argument_list = self
@@ -262,6 +291,7 @@ impl Settings {
             self.editor_argument_list
                 .push(self.configuration_file.clone())
         }
+        debug!(editor_command = ?self.editor_command, arguments = ?self.editor_argument_list);
         Ok(())
     }
 }
