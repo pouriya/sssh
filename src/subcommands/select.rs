@@ -33,6 +33,7 @@ enum ControlFlow {
     Stop,
     Edit,
     Selected,
+    Reload,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -42,7 +43,6 @@ struct State {
     choosing_server: bool,
     choosing_username: bool,
     selected_server: bool,
-    have_server: bool,
     server_list: Vec<ConfigServer>,
     server_table_state: TableState,
     username_list_state: ListState,
@@ -52,12 +52,10 @@ struct State {
 impl PartialEq for State {
     fn eq(&self, other: &Self) -> bool {
         [
-            self.have_server,
             self.choosing_server,
             self.choosing_username,
             self.selected_server,
         ] == [
-            other.have_server,
             other.choosing_server,
             other.choosing_username,
             other.selected_server,
@@ -164,7 +162,7 @@ impl Default for Theme {
             help_key_working_bg: Color::Reset,
             help_key_working_fg: Color::LightYellow,
             help_key_not_working_bg: Color::Reset,
-            help_key_not_working_fg: Color::Red,
+            help_key_not_working_fg: Color::DarkGray,
             help_key_guide_working_bg: Color::Reset,
             help_key_guide_working_fg: Color::White,
             help_key_guide_not_working_bg: Color::Reset,
@@ -177,13 +175,12 @@ impl Default for Theme {
 pub struct WorkingKeys {
     pub q: bool,
     pub e: bool,
+    pub r: bool,
     pub up: bool,
     pub down: bool,
     pub left: bool,
     pub right: bool,
     pub enter: bool,
-    pub backspace: bool,
-    pub escape: bool,
 }
 
 impl WorkingKeys {
@@ -195,8 +192,8 @@ impl WorkingKeys {
             ("Right", "Choose from usernames", self.right),
             ("q", "Quit", self.q),
             ("e", "Edit config file", self.e),
+            ("r", "Reload config file", self.r),
             ("Enter", "Choose", self.enter),
-            ("Backspace", "Back to servers", self.backspace),
         ]
         .to_vec()
     }
@@ -213,18 +210,17 @@ impl TryFrom<HashMap<String, ConfigServer>> for State {
         state.server_list.sort_by_key(|server| server.name.clone());
         state.working_keys.q = true;
         state.working_keys.e = true;
+        state.working_keys.r = true;
         if !state.server_list.is_empty() {
-            state.have_server = true;
             state.working_keys = WorkingKeys {
                 q: true,
                 e: true,
+                r: true,
                 up: true,
                 down: true,
                 left: true,
                 right: true,
                 enter: true,
-                backspace: true,
-                escape: true,
             };
             state.choosing_server = true;
             state.next_server();
@@ -296,7 +292,7 @@ impl State {
 }
 
 pub fn run(settings: &mut Settings) -> Result<(), AppError> {
-    let mut maybe_error = match settings.ensure_configuration() {
+    let mut maybe_error = match settings.try_load_and_set_configuration() {
         Ok(_) => None,
         Err(ref error @ AppError::ConfigSyntax { ref source, .. }) => {
             Some(format!("{}\n{}", error, source))
@@ -320,7 +316,6 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
             maybe_error.clone(),
             theme,
         );
-        maybe_error = None;
         disable_raw_mode().map_err(|source| AppError::UI { source })?;
         execute!(terminal.backend_mut(), LeaveAlternateScreen)
             .map_err(|source| AppError::UI { source })?;
@@ -329,15 +324,7 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
             .map_err(|source| AppError::UI { source })?;
         match result {
             Ok(ControlFlow::Edit) => {
-                match edit(settings) {
-                    Ok(_) => continue,
-                    Err(ref error @ AppError::ConfigSyntax { ref source, .. }) => {
-                        maybe_error = Some(format!("{}\n{}", error, source));
-                        settings.configuration.servers = HashMap::new();
-                        continue;
-                    }
-                    Err(error) => return Err(error),
-                };
+                maybe_error = edit_and_convert_errors(settings)?;
             }
             Ok(ControlFlow::Stop) => return Ok(()),
             Ok(ControlFlow::Selected) => {
@@ -354,8 +341,43 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
                 };
                 return run_scrip_result;
             }
+            Ok(ControlFlow::Reload) => {
+                maybe_error = match settings.try_load_and_set_configuration() {
+                    Ok(_) => None,
+                    Err(ref error @ AppError::ConfigSyntax { ref source, .. }) => {
+                        Some(format!("{}\n{}", error, source))
+                    }
+                    Err(error) => return Err(error),
+                };
+            }
             Err(error) => return Err(error),
         }
+    }
+}
+
+fn edit_and_convert_errors(settings: &mut Settings) -> Result<Option<String>, AppError> {
+    match edit(settings) {
+        Ok(_) => Ok(None),
+        Err(ref error @ AppError::ConfigSyntax { ref source, .. }) => {
+            Ok(Some(format!("{}\n{}", error, source)))
+        }
+        Err(ref error @ AppError::EditorFastStop) => Ok(Some(format!(
+            "{}\nAfter editing configuration file press `r` to reload it.\n\nfile: {:?}",
+            error, settings.configuration_file
+        ))),
+        Err(ref error @ AppError::ProcessStart { ref source, .. }) => Ok(Some(format!(
+            "{}\n{}\nEdit the file manually and press `r` to reload it.",
+            error, source
+        ))),
+        Err(ref error @ AppError::ProcessWait { ref source, .. }) => Ok(Some(format!(
+            "{}\n{}\nEdit the file manually and press `r` to reload it.",
+            error, source
+        ))),
+        Err(ref error @ AppError::ProcessFailed { ref source, .. }) => Ok(Some(format!(
+            "{}\n{}\nEdit the file manually and press `r` to reload it.",
+            error, source
+        ))),
+        Err(error) => Err(error),
     }
 }
 
@@ -377,11 +399,8 @@ fn run_tui<B: Backend>(
             Key(key) => match key.code {
                 KeyCode::Char('q') => Some(ControlFlow::Stop),
                 KeyCode::Char('e') => Some(ControlFlow::Edit),
+                KeyCode::Char('r') => Some(ControlFlow::Reload),
                 KeyCode::Enter if state.choosing_username => Some(ControlFlow::Selected),
-                KeyCode::Enter if state.choosing_server => {
-                    state.choosing_username = true;
-                    None
-                }
                 _ if maybe_error.is_none() => {
                     match key.code {
                         up_down if up_down == KeyCode::Up || up_down == KeyCode::Down => {
@@ -402,13 +421,19 @@ fn run_tui<B: Backend>(
                             }
                         }
                         left_right
-                            if left_right == KeyCode::Left || left_right == KeyCode::Right =>
+                            if [
+                                KeyCode::Left,
+                                KeyCode::Right,
+                                KeyCode::Backspace,
+                                KeyCode::Enter,
+                            ]
+                            .contains(&left_right) =>
                         {
-                            if left_right == KeyCode::Left {
+                            if [KeyCode::Left, KeyCode::Backspace].contains(&left_right) {
                                 state.choosing_username = false;
                                 state.username_list_state.select(None);
                                 state.choosing_server = true;
-                            } else if left_right == KeyCode::Right {
+                            } else if [KeyCode::Right, KeyCode::Enter].contains(&left_right) {
                                 state.choosing_username = true;
                                 state.next_username();
                                 state.choosing_server = false;

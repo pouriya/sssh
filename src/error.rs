@@ -34,7 +34,12 @@ pub enum AppError {
         filename: PathBuf,
     },
     // Edit subcommand:
-    #[error("Could not run start {title:} process with command {command:?} and arguments {argument_list:?}")]
+    #[error("Editor process was running for less than 2 seconds!\nMaybe your editor opened the edit tab inside another session.")]
+    EditorFastStop,
+    #[error(
+        "Could not start {title:} process with command {command:?} and arguments {argument_list:?}"
+    )]
+    // Utils:
     ProcessStart {
         title: &'static str,
         command: PathBuf,
