@@ -2,6 +2,7 @@
 name = "sssh"
 version = "1.0.0"
 edition = "2021"
+authors = ["pouriya.jahanbakhsh@gmail.com"]
 
 [workspace.metadata]
 APPLICATION_VERSION = "23.03.02"
@@ -22,6 +23,9 @@ crossterm = "0.25"
 atty = "0.2.14"
 faccess = "0.2.*"
 pathsearch = "0.2.*"
+human-panic = "1.1.*"
+backtrace = "0.3.*"
+os_info = "3.6.*"
 
 [package.metadata.deb]
 maintainer = "Pouriya Jahanbakhsh pouriya.jahanbakhsh@gmail.com"

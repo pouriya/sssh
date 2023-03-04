@@ -1,10 +1,10 @@
 mod error;
+mod panic_hook;
 mod settings;
 mod subcommands;
 mod utils;
 
 use std::io;
-
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -49,6 +49,7 @@ lazy_static! {
 }
 
 fn main() -> Result<()> {
+    panic_hook::setup();
     let (logging_filter, logging_reload_handle) =
         tracing_subscriber::reload::Layer::new(tracing_subscriber::filter::LevelFilter::OFF);
     tracing_subscriber::registry()
@@ -95,7 +96,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
     }
-    bail!(
+    panic!(
         "Could not found callback function for subcommand `{}`",
         format!("{:?}", settings.subcommand).to_lowercase()
     );
