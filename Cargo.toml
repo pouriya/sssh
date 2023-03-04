@@ -1,10 +1,10 @@
 [package]
 name = "sssh"
-version = "23.3.2"
+version = "1.0.0"
 edition = "2021"
 
 [workspace.metadata]
-application_version = "23.03.02"
+APPLICATION_VERSION = "23.03.02"
 
 
 [dependencies]

@@ -517,7 +517,7 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
 name = "sssh"
-version = "23.3.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "atty",

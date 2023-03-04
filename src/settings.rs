@@ -46,7 +46,7 @@ const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
 ];
 
 #[derive(Debug, Clone, Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, about, version = env!("APPLICATION_VERSION"), long_about = None)]
 pub struct Settings {
     /// Increase verbosity.
     #[arg(short, long, global = true, env = "SSSH_VERBOSE")]
