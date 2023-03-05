@@ -6,7 +6,6 @@ DEV_CMD=${BUILD_DIR}/sssh-${VERSION}-${TARGET}-dev${RELEASE_FILENAME_POSTFIX}
 RELEASE_FILENAME_POSTFIX=
 
 
-
 all: release
 
 
@@ -41,8 +40,15 @@ test:
 	cargo test --target ${TARGET}
 
 
+clean:
+	cargo clean
+
+dist-clean: clean
+	rm -rf ${BUILD_DIR}
+
+
 ${BUILD_DIR}:
 	@ mkdir -p ${BUILD_DIR}
 
 
-.PHONY: all release deb dev start-dev lint test
+.PHONY: all release deb dev start-dev lint test clean dist-clean
