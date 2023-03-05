@@ -1,14 +1,14 @@
 [package]
 name = "sssh"
 description = "Simply connect to your SSH server."
-version = "1.0.0"
+version = "23.3.5"
 edition = "2021"
 authors = ["pouriya.jahanbakhsh@gmail.com"]
 repository = "https://github.com/pouriya/sssh"
 license-file = "LICENSE"
 
 [workspace.metadata]
-APPLICATION_VERSION = "23.03.02"
+APPLICATION_VERSION = "23.03.05"
 
 [dependencies]
 clap = {version = "4.1.*", default-features = false, features = ["std", "help", "usage", "derive", "env", "wrap_help", "cargo"]}
