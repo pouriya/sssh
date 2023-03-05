@@ -1,23 +1,27 @@
-![SSSH DEMO GIF](https://github.com/pouriya/restcommander/releases/download/media/sssh-demo.gif)
+![SSSH DEMO GIF](https://github.com/pouriya/sssh/releases/download/media/sssh-demo.gif)
 
 
 # SSSH
-Simply connect to your ssh server.
+Simply connect to your ssh server (inspired by [`rayx/pickhost`](https://github.com/rayx/pickhost)).
 
 ## Installation
 Download the latest version:
-* GNU/Linux:
-    * Musl (Statically linked):       [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-musl-ubuntu-22.04)
-    * GNU (Dynamic linking to glibc): [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-gnu-ubuntu-22.04)
+* **GNU/Linux**:
+    * Musl (Statically linked):       [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-musl-ubuntu-22.04)
+    * GNU (Dynamic linking to glibc): [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-gnu-ubuntu-22.04)
     * Debian package (`.deb` file):  
-        * Musl (Statically linked):       [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-musl-ubuntu-22.04.deb)
-        * GNU (Dynamic linking to glibc): [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-gnu-ubuntu-22.04.deb)
-* macOS:
-    * v11: [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-apple-darwin-macos-11)
-    * v12: [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-apple-darwin-macos-12)
-* Windows:
-    * MSVC: [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-pc-windows-msvc-windows-2022.exe)
-    * GNU:  [download](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-pc-windows-gnu-windows-2022.exe)
+        * Musl (Statically linked):       [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-musl-ubuntu-22.04.deb)
+        * GNU (Dynamic linking to glibc): [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-unknown-linux-gnu-ubuntu-22.04.deb)
+* **macOS**:
+    * v11: [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-apple-darwin-macos-11)
+    * v12: [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-apple-darwin-macos-12)
+* **Windows**:
+    * v2019:
+        * MSVC: [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-pc-windows-msvc-windows-2019.exe)
+        * GNU:  [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-pc-windows-gnu-windows-2019.exe)
+    * v2022:
+      * MSVC: [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-pc-windows-msvc-windows-2022.exe)
+      * GNU:  [**download**](https://github.com/pouriya/sssh/releases/download/latest/sssh-latest-x86_64-pc-windows-gnu-windows-2022.exe)
 
 ## Usage
 ```shell
@@ -59,7 +63,7 @@ Options:
           For more information run `sssh sample config`
           
           [env: SSSH_CONFIG_FILE=]
-          [default: /home/p/.config/sssh.toml]
+          [default: ~/.config/sssh.toml]
 
   -s, --script-file <script-file>
           An executable file that will accept SSH info to connect to chosen server.
@@ -67,7 +71,7 @@ Options:
           For more information run `sssh sample script`
           
           [env: SSSH_SCRIPT_FILE=]
-          [default: /home/p/.config/sssh.sh]
+          [default: ~/.config/sssh.sh]
 
   -S, --skip-select
           Skip running final script
@@ -96,4 +100,3 @@ Options:
 
 # To contributors
 I ❤️ PR from everyone and I appreciate your help but before opening a PR, Open an issue and describe your feature, bug, etc.
-
