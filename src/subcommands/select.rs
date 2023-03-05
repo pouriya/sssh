@@ -12,6 +12,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::collections::HashMap;
+use std::error::Error;
 use std::path::PathBuf;
 use tracing::debug;
 use tui::layout::Rect;
@@ -358,26 +359,36 @@ pub fn run(settings: &mut Settings) -> Result<(), AppError> {
 fn edit_and_convert_errors(settings: &mut Settings) -> Result<Option<String>, AppError> {
     match edit(settings) {
         Ok(_) => Ok(None),
-        Err(ref error @ AppError::ConfigSyntax { ref source, .. }) => {
-            Ok(Some(format!("{}\n{}", error, source)))
+        Err(ref error @ AppError::ConfigSyntax { .. }) => {
+            Ok(Some(error_to_string(error, String::new())))
         }
         Err(ref error @ AppError::EditorFastStop) => Ok(Some(format!(
             "{}\nAfter editing configuration file press `r` to reload it.\n\nfile: {:?}",
-            error, settings.configuration_file
+            error_to_string(error, String::new()),
+            settings.configuration_file
         ))),
-        Err(ref error @ AppError::ProcessStart { ref source, .. }) => Ok(Some(format!(
-            "{}\n{}\nEdit the file manually and press `r` to reload it.",
-            error, source
+        Err(ref error @ AppError::ProcessStart { .. }) => Ok(Some(format!(
+            "{}\nEdit the file manually and press `r` to reload it.",
+            error_to_string(error, String::new())
         ))),
-        Err(ref error @ AppError::ProcessWait { ref source, .. }) => Ok(Some(format!(
-            "{}\n{}\nEdit the file manually and press `r` to reload it.",
-            error, source
+        Err(ref error @ AppError::ProcessWait { .. }) => Ok(Some(format!(
+            "{}\nEdit the file manually and press `r` to reload it.",
+            error_to_string(error, String::new())
         ))),
-        Err(ref error @ AppError::ProcessFailed { ref source, .. }) => Ok(Some(format!(
-            "{}\n{}\nEdit the file manually and press `r` to reload it.",
-            error, source
+        Err(ref error @ AppError::ProcessFailed { .. }) => Ok(Some(format!(
+            "{}\nEdit the file manually and press `r` to reload it.",
+            error_to_string(error, String::new())
         ))),
         Err(error) => Err(error),
+    }
+}
+
+fn error_to_string<E: Error>(error: E, prefix: String) -> String {
+    let text = format!("{}\n{}", prefix, error);
+    if let Some(source) = error.source() {
+        error_to_string(source, text)
+    } else {
+        text
     }
 }
 
@@ -627,9 +638,17 @@ fn error_ui<B: Backend>(
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
+                Constraint::Length(if rect.height > line_count {
+                    (rect.height - line_count) / 2
+                } else {
+                    0
+                }),
+                Constraint::Length(line_count),
+                Constraint::Length(if rect.height > line_count {
+                    (rect.height - line_count) / 2
+                } else {
+                    0
+                }),
             ]
             .as_ref(),
         )
@@ -638,9 +657,17 @@ fn error_ui<B: Backend>(
         .direction(Direction::Horizontal)
         .constraints(
             [
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
+                Constraint::Length(if rect.width > max_line_length as u16 {
+                    (rect.width - max_line_length as u16) / 2
+                } else {
+                    0
+                }),
+                Constraint::Length(max_line_length as u16),
+                Constraint::Length(if rect.width > max_line_length as u16 {
+                    (rect.width - max_line_length as u16) / 2
+                } else {
+                    0
+                }),
             ]
             .as_ref(),
         )

@@ -30,9 +30,6 @@ const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
 ];
 #[cfg(not(target_family = "unix"))]
 const TO_BE_SEARCHED_EDITOR_LIST: &[(&str, &[&str])] = &[
-    // -multiInst: Launch another Notepad++ instance.
-    // -nosession:
-    // -notabbar:
     (
         "notepad++",
         &[
@@ -55,6 +52,8 @@ pub struct Settings {
     #[arg(short, long, global = true, env = "SSSH_QUIET")]
     pub quiet: bool,
     /// TOML Configuration file.
+    ///
+    /// For more information run `sssh sample config`
     #[arg(
         name = "config-file",
         short,
@@ -65,6 +64,8 @@ pub struct Settings {
     )]
     pub configuration_file: PathBuf,
     /// An executable file that will accept SSH info to connect to chosen server.
+    ///
+    /// For more information run `sssh sample script`
     #[arg(
         name = "script-file",
         short,
@@ -109,13 +110,13 @@ pub struct Settings {
 
 #[derive(Debug, Clone, PartialEq, Parser)]
 pub enum SubCommand {
-    /// Select a server to connect from the terminal UI.
+    /// Select a server to connect from the terminal UI. (default)
     Select,
     /// Edit configuration file to add/remove servers.
     Edit,
-    /// Prints current configuration file contents.
+    /// Print current configuration file contents.
     Config,
-    /// Prints current script file contents.
+    /// Print current script file contents.
     Script,
     /// Samples for configuration and script.
     #[command(subcommand)]
@@ -366,7 +367,7 @@ impl Config {
     }
 
     pub fn is_default_servers(&self) -> bool {
-        self.raw == DEFAULT_CONFIGURATION
+        self.raw.trim() == DEFAULT_CONFIGURATION.trim()
     }
 }
 
